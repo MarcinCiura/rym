@@ -3,7 +3,7 @@
 
 """Installs the Polish rhyming dictionary on Unix systems."""
 
-# Copyright 2013 Marcin Ciura
+# Copyright 2013-2020 Marcin Ciura
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,10 +45,10 @@ COLLATE = {
     u"'": '',
 }
 
-LATIN = set(string.lowercase)
-REMOVE = set(string.uppercase + u'ĄĆĘŁŃÓŚŹŻ. 0123456789')
+LATIN = frozenset(string.lowercase)
+REMOVE = frozenset(string.uppercase + u'ÉŠÜàâäçčêñôōšúùûūĄĆĘŁŃÓŚŹŻ.;0123456789')
 
-WORD_LIST_REFERRER_URL = 'http://sjp.pl/slownik/odmiany'
+WORD_LIST_REFERRER_URL = 'https://sjp.pl/slownik/odmiany'
 WORD_LIST_URL_RE = re.compile(r'"[^.]+\.zip"')
 WORD_LIST_FILENAME = 'odm.txt'
 
@@ -58,14 +58,11 @@ RESULT = []
 
 
 def Convert(word):
-  word = unicode(word, 'cp1250')
-  if (word.startswith(u'ąkod') or
-      word.startswith(u'©kod') or
-      word.startswith(u'Šk') or
-      word.startswith(u'šk')):
+  uword = unicode(word, 'utf-8')
+  if u' ' in uword:
     return
   collate = []
-  for char in word:
+  for char in uword:
     if char in REMOVE:
       return
     elif char in LATIN:
@@ -73,8 +70,7 @@ def Convert(word):
     elif char in COLLATE:
       collate.append(COLLATE[char])
     else:
-      sys.exit(u'Nieznany znak w słowie %s' % word)
-  word = word.encode('utf-8')
+      sys.exit(u'Nieznany znak w wyrazie %s' % uword)
   length, rhyme = rym.GetLengthAndRhyme(word)
   if rhyme:
     RESULT.append(
@@ -85,7 +81,7 @@ def Convert(word):
 def main():
   if os.geteuid() != 0:
     sys.exit(u'Instalator musi zostać uruchomiony w trybie superużytkownika.')
-  sys.stderr.write(u'Ściąganie listy słów z %s\n' % WORD_LIST_REFERRER_URL)
+  sys.stderr.write(u'Pobieranie listy wyrazów z %s\n' % WORD_LIST_REFERRER_URL)
   page = urllib2.urlopen(WORD_LIST_REFERRER_URL).read()
   url = os.path.join(
       WORD_LIST_REFERRER_URL,
@@ -115,7 +111,7 @@ def main():
     os.makedirs(os.path.dirname(PROGRAM_DESTINATION))
   except OSError:
     pass
-  shutil.copyfile('rym.py', PROGRAM_DESTINATION)
+  shutil.copy('rym.py', PROGRAM_DESTINATION)
 
 
 if __name__ == '__main__':
